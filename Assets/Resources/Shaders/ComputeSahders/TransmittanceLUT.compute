@@ -1,0 +1,46 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel UpdateTransmittance
+#include "./TransmittanceCommon.hlsl"
+
+#define _TransmittanceSampleCount 64
+
+//RWTexture2D<float3> _TransmittanceLUT;
+RWTexture2D<float2> _OpticalDepthLUTW;
+float4 _LutSize_InvSize;
+
+
+[numthreads(8,8,1)]
+void UpdateTransmittance (uint3 id : SV_DispatchThreadID)
+{
+    if((float)id.x >= _LutSize_InvSize.y || (float)id.y >= _LutSize_InvSize.y)
+        return;
+        
+    float2 uv = (id.xy + 0.5) * _LutSize_InvSize.zw;
+    float height = 0;
+    float dirY = 0;//相当于天顶角的cos
+    DecodeTrtansmisionCoord(uv, height, dirY);
+    float op = _PlanetaryRadius + height;
+    float rayEndLength = 0;
+    float dirY2 = 0;
+    CalculateRayEndLength(op, dirY, rayEndLength, dirY2);
+    float2 samplePos = float2(0, op);
+    const float stepLength = rayEndLength / _TransmittanceSampleCount;
+    //float cos = sqrt(1 - dirY * dirY);
+    const float2 sampleStep = stepLength * float2(sqrt(1 - dirY2), dirY);
+    samplePos += sampleStep * 0.5;
+    float opticalDepthRayleigh = 0;
+    float opticalDepthMie = 0;
+    for(int i = 0; i < _TransmittanceSampleCount; i++){
+        float sampleHeight = max(0, length(samplePos) - _PlanetaryRadius);
+        float densityRayleigh = GetAtmosphericDensity(sampleHeight, _ScaledHeightRayleigh);
+        float densityMie = GetAtmosphericDensity(sampleHeight, _ScaledHeightMie);
+        opticalDepthRayleigh += densityRayleigh;
+        opticalDepthMie += densityMie;
+        samplePos += sampleStep;
+    }
+    opticalDepthRayleigh *= stepLength;
+    opticalDepthMie *= stepLength;
+    //_TransmittanceLUT[id.xy] = exp(-_ScatteringRateRayleigh * opticalDepthRayleigh - _ScatteringRateMie * opticalDepthMie);
+    _OpticalDepthLUTW[id.xy] = float2(opticalDepthRayleigh, opticalDepthMie) * _OpticalDepthScale;
+}
+

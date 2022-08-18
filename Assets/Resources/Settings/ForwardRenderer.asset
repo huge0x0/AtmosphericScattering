@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-4155223632065836756
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5977765be6846434cb12a5a7e2cdedd0, type: 3}
+  m_Name: NewAtmosphericScatteringRenderFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  UseCustomResLoader: 0
+  UpdateOpticalDepthCS: {fileID: 7200000, guid: d0309403eb8e45288da1a6060b4b14f8, type: 3}
+  UpdateSkyViewCS: {fileID: 7200000, guid: 8827c64d28a94f0e85ae3b1dc8907507, type: 3}
+  SkyboxMat: {fileID: 2100000, guid: fbce295d9a74e8e4bb1091e7f1ed74d9, type: 2}
+  Data:
+    PlanetaryRadius: 6357
+    ScaledHeightRayleigh: 8
+    ScaledHeightMie: 1.2
+    ScatteringRateRayleigh: {x: 5.8, y: 13.5, z: 33}
+    ScatteringRateMie: {x: 4, y: 4, z: 4}
+    SunColor: {r: 1, g: 0.95583445, b: 0.8537736, a: 1}
+    SunIntensity: 2.98
+    CameraHeight: 0.1
+    SunHorizontalAngle: 0
+    SunVerticalAngle: -41.4
+    SunViewRange: 0.0433
+    GroundColor: {r: 0.38679248, g: 0.3842445, b: 0.33388218, a: 1}
+    MieG: 0.97
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de640fe3d0db1804a85f9fc8f5cadab6, type: 3}
+  m_Name: ForwardRenderer
+  m_EditorClassIdentifier: 
+  m_RendererFeatures:
+  - {fileID: -4155223632065836756}
+  m_RendererFeatureMap: 2c4968381fae55c6
+  postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
+  shaders:
+    blitPS: {fileID: 4800000, guid: c17132b1f77d20942aa75f8429c0f8bc, type: 3}
+    copyDepthPS: {fileID: 4800000, guid: d6dae50ee9e1bfa4db75f19f99355220, type: 3}
+    screenSpaceShadowPS: {fileID: 4800000, guid: 0f854b35a0cf61a429bd5dcfea30eddd, type: 3}
+    samplingPS: {fileID: 4800000, guid: 04c410c9937594faa893a11dceb85f7e, type: 3}
+    fallbackErrorPS: {fileID: 4800000, guid: e6e9a19c3678ded42a3bc431ebef7dbd, type: 3}
+  m_OpaqueLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_TransparentLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_DefaultStencilState:
+    overrideStencilState: 0
+    stencilReference: 0
+    stencilCompareFunction: 8
+    passOperation: 0
+    failOperation: 0
+    zFailOperation: 0
+  m_ShadowTransparentReceive: 1

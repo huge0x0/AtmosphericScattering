@@ -1,0 +1,123 @@
+#pragma kernel IntegrateInScattering
+#pragma enable_d3d11_debug_symbols
+
+#include "./TransmittanceCommon.hlsl"
+
+#define _AtmosphericScatteringSampleCount 64
+
+Texture2D<float2> _OpticalDepthLUT;
+RWTexture2D<float3> _SkyViewTexW;
+SamplerState _MyLinearClampSampler;
+float4 _SkyViewSize_InvSize;
+
+
+float _CameraHeight;
+float3 _SunDir;
+float3 _SunInscattering;
+float3 _ScatteringRateRayleigh;
+float3 _ScatteringRateMie;
+float3 _GroundColor;
+float _SunVisibilityRange;
+float2 _MieG;
+
+#define PI_2 6.28319
+
+float2 GetOpticalDepth(float height, float cosZenith)
+{
+    float2 transmittanceUV = EncodeTransmittanceCoord(height, cosZenith);
+    return  _OpticalDepthLUT.SampleLevel(_MyLinearClampSampler, transmittanceUV, 0);
+}
+
+float GetRayleighPhase(float3 sunDir, float3 viewDir)
+{
+    float u = mul(sunDir, viewDir);
+    return 3 / (PI_2 * 8) * (1 + u * u);
+}
+
+float GetMiePhase(float3 sunDir, float3 viewDir)
+{
+    float u = mul(sunDir, viewDir);
+    float f = 1 + _MieG.y - 2 * _MieG.x * u;
+    f = sqrt(f * f * f);
+    return 3 / (PI_2 * 4) * (1 - _MieG.y) * (1 + u * u) / (2 + _MieG.y) / f;
+}
+
+
+[numthreads(8,8,1)]
+void IntegrateInScattering(uint3 id : SV_DispatchThreadID)
+{
+    if((float)id.x >= _SkyViewSize_InvSize.x || (float)id.y >= _SkyViewSize_InvSize.y)
+        return;
+    float2 uv = (id.xy + 0.5) * _SkyViewSize_InvSize.zw;
+
+    //计算水平方向
+    //u=0表示的是x+方向, 逆时针旋转
+    float horizontalRadian = uv.x * PI_2;
+    float horizontalCos = cos(horizontalRadian);
+    float horizontalSin = sin(horizontalRadian);
+    float2 horizontalDir = float2(horizontalCos, horizontalSin);
+    //计算垂直方向
+    //v=0表示垂直向下看, 这里直接用sin值，是为了用更多的空间去存储水平方向的结果
+    float verticalSin = uv.y * 2 - 1;
+    float verticalCos = sqrt(1 - verticalSin * verticalSin);
+    //合并两个方向
+    float3 viewDir = float3(horizontalDir.x * verticalCos, verticalSin, horizontalDir.y * verticalCos);
+
+    float op = _PlanetaryRadius + _CameraHeight;
+    float rayEndLength = 0;
+    float dirY2 = 0;
+    CalculateRayEndLength(op, verticalSin, rayEndLength, dirY2);
+    
+    float2 viewRayTotalOpticalDepth = GetOpticalDepth(_CameraHeight, verticalSin);
+    
+    float3 samplePos = float3(0, op, 0);
+    float endLength;
+    bool hasIntersect = CalculateRayIntersectWithPlanetary(samplePos, viewDir, endLength);
+    float3 groundColor = 0;
+    if(hasIntersect)
+    {
+        rayEndLength = min(rayEndLength, endLength);
+        groundColor = _GroundColor;
+    }
+    
+    const float stepLength = rayEndLength / _AtmosphericScatteringSampleCount;
+    //float cos = sqrt(1 - dirY * dirY);
+    const float3 sampleStep = stepLength * viewDir;
+    samplePos += sampleStep * 0.5;
+    float3 inscatteringRayleigh = 0;
+    float3 inscatteringMie = 0;
+    float2 viewRayCurrentOpticalDepth = 0;
+    for(int i = 0; i < _AtmosphericScatteringSampleCount; i++){
+        float centerToSamplePosLength = length(samplePos);
+        float3 centerToSamplePosDir = samplePos / centerToSamplePosLength;
+        float height = centerToSamplePosLength - _PlanetaryRadius;
+        float densityRayleigh = GetAtmosphericDensity(height, _ScaledHeightRayleigh);
+        float densityMie = GetAtmosphericDensity(height, _ScaledHeightMie);
+        //计算D(pa)
+        float2 viewRayRemainOpticalDepth = GetOpticalDepth(height, mul(viewDir, centerToSamplePosDir));
+        viewRayCurrentOpticalDepth = viewRayTotalOpticalDepth - viewRayRemainOpticalDepth;
+        //计算D(cp)
+        float sunZenith = mul(_SunDir, centerToSamplePosDir);
+        float2 sunRayOpticalDepth = GetOpticalDepth(height, sunZenith);
+        float2 totalOpticalDepth = viewRayCurrentOpticalDepth + sunRayOpticalDepth;
+        //计算阳光方向的遮挡系数
+        float sunVisibility = CalculateVisibility(centerToSamplePosLength, sunZenith, _SunVisibilityRange);
+        //累计该分段的入射光
+        float3 totalTransmittance = exp(-_ScatteringRateRayleigh * totalOpticalDepth.x - _ScatteringRateMie * totalOpticalDepth.y) * sunVisibility;
+        inscatteringRayleigh += totalTransmittance * densityRayleigh;
+        inscatteringMie += totalTransmittance * densityMie;
+        
+        samplePos += sampleStep;
+    }
+
+    //叠加rayleigh和mie的相位函数，合成结果
+    float rayleighPhase = GetRayleighPhase( _SunDir, viewDir);
+    float miePhase = GetMiePhase( _SunDir, viewDir);
+    inscatteringRayleigh *= stepLength * rayleighPhase * _ScatteringRateRayleigh;
+    inscatteringMie *= stepLength * miePhase * _ScatteringRateMie;
+
+    //计算地面颜色
+    float3 groundTransmittance = exp(-_ScatteringRateRayleigh * viewRayCurrentOpticalDepth.x - _ScatteringRateMie * viewRayCurrentOpticalDepth.y);
+
+    _SkyViewTexW[id.xy] = _SunInscattering * (inscatteringRayleigh + inscatteringMie) + groundColor * groundTransmittance;
+}
