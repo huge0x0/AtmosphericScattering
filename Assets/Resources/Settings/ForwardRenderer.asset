@@ -18,19 +18,19 @@ MonoBehaviour:
   UpdateSkyViewCS: {fileID: 7200000, guid: 8827c64d28a94f0e85ae3b1dc8907507, type: 3}
   SkyboxMat: {fileID: 2100000, guid: fbce295d9a74e8e4bb1091e7f1ed74d9, type: 2}
   Data:
-    PlanetaryRadius: 6357
+    PlanetaryRadius: 6360
     ScaledHeightRayleigh: 8
     ScaledHeightMie: 1.2
     ScatteringRateRayleigh: {x: 5.8, y: 13.5, z: 33}
     ScatteringRateMie: {x: 4, y: 4, z: 4}
-    SunColor: {r: 1, g: 0.95583445, b: 0.8537736, a: 1}
-    SunIntensity: 2.98
+    SunColor: {r: 1, g: 1, b: 1, a: 1}
+    SunIntensity: 4.31
     CameraHeight: 0.1
     SunHorizontalAngle: 0
-    SunVerticalAngle: -41.4
-    SunViewRange: 0.0433
-    GroundColor: {r: 0.38679248, g: 0.3842445, b: 0.33388218, a: 1}
-    MieG: 0.97
+    SunVerticalAngle: -90
+    SunViewRange: 0.0086
+    GroundColor: {r: 0.6509434, g: 0.6509434, b: 0.6509434, a: 1}
+    MieG: 0.99
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

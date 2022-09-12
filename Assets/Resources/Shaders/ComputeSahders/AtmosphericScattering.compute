@@ -22,10 +22,15 @@ float2 _MieG;
 
 #define PI_2 6.28319
 
+float3 GetGroundColor()
+{
+    
+}
+
 float2 GetOpticalDepth(float height, float cosZenith)
 {
     float2 transmittanceUV = EncodeTransmittanceCoord(height, cosZenith);
-    return  _OpticalDepthLUT.SampleLevel(_MyLinearClampSampler, transmittanceUV, 0);
+    return  _OpticalDepthLUT.SampleLevel(_MyLinearClampSampler, transmittanceUV, 0) * _OpticalDepthScaleInv * 1000;
 }
 
 float GetRayleighPhase(float3 sunDir, float3 viewDir)
@@ -103,7 +108,7 @@ void IntegrateInScattering(uint3 id : SV_DispatchThreadID)
         //计算阳光方向的遮挡系数
         float sunVisibility = CalculateVisibility(centerToSamplePosLength, sunZenith, _SunVisibilityRange);
         //累计该分段的入射光
-        float3 totalTransmittance = exp(-_ScatteringRateRayleigh * totalOpticalDepth.x - _ScatteringRateMie * totalOpticalDepth.y) * sunVisibility;
+        float3 totalTransmittance = exp((-_ScatteringRateRayleigh * totalOpticalDepth.x - _ScatteringRateMie * totalOpticalDepth.y)) * sunVisibility;
         inscatteringRayleigh += totalTransmittance * densityRayleigh;
         inscatteringMie += totalTransmittance * densityMie;
         

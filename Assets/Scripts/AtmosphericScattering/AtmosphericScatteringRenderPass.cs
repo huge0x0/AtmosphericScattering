@@ -14,7 +14,7 @@ namespace AtmosphericScattering {
         public Vector3 ScatteringRateRayleigh = new Vector3(5.8f, 13.5f, 33);
         public Vector3 ScatteringRateMie = new Vector3(4, 4, 4);
         public Color SunColor = Color.white;
-        [Range(0, 5)]
+        [Range(0, 10)]
         public float SunIntensity = 1000;
 
         [Min(0)]
@@ -72,7 +72,7 @@ namespace AtmosphericScattering {
             
             if (mTransmittanceRT == null) {
                 mTransmittanceRT = new RenderTexture(mTransmittanceRTSize.x, mTransmittanceRTSize.y, 1,
-                    RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear) {
+                    RenderTextureFormat.RGFloat, RenderTextureReadWrite.Linear) {
                     enableRandomWrite = true,
                     name = "_OpticalDepthLUT",
                 };
@@ -115,8 +115,8 @@ namespace AtmosphericScattering {
                 Vector3 sunDir = sunRotation * Vector3.forward;
                 cmd.SetComputeVectorParam(computeShader, ShaderPropertyID._SunDir, sunDir.normalized);
                 cmd.SetComputeVectorParam(computeShader, ShaderPropertyID._SunInscattering, mData.SunColor * Mathf.Pow(10, mData.SunIntensity));
-                cmd.SetComputeVectorParam(computeShader, ShaderPropertyID._ScatteringRateRayleigh, mData.ScatteringRateRayleigh * 10e-6f);
-                cmd.SetComputeVectorParam(computeShader, ShaderPropertyID._ScatteringRateMie, mData.ScatteringRateMie * 10e-6f);
+                cmd.SetComputeVectorParam(computeShader, ShaderPropertyID._ScatteringRateRayleigh, mData.ScatteringRateRayleigh * 1e-6f);
+                cmd.SetComputeVectorParam(computeShader, ShaderPropertyID._ScatteringRateMie, mData.ScatteringRateMie * 1e-6f);
                 cmd.SetComputeVectorParam(computeShader, ShaderPropertyID._GroundColor, mData.GroundColor);
                 cmd.SetComputeFloatParam(computeShader, ShaderPropertyID._SunVisibilityRange, mData.SunViewRange);
                 cmd.SetComputeVectorParam(computeShader, ShaderPropertyID._MieG, new Vector2(mData.MieG, mData.MieG * mData.MieG));
